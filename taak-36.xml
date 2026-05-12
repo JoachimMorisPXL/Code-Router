@@ -1,0 +1,51 @@
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <!-- Hostname Setup -->
+  <native xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-native">
+    <hostname>Cisco-Router-Python</hostname>
+    
+    <!-- Interface Config (GigabitEthernet1 en 2) -->
+    <interface>
+      <GigabitEthernet>
+        <name>1</name>
+        <description>Configured via Python NETCONF</description>
+        <ip>
+          <address>
+            <primary>
+              <address>10.0.1.1</address>
+              <mask>255.255.255.0</mask>
+            </primary>
+          </address>
+        </ip>
+      </GigabitEthernet>
+      <GigabitEthernet>
+        <name>2</name>
+        <description>LAN Interface</description>
+        <ip>
+          <address>
+            <primary>
+              <address>10.0.2.1</address>
+              <mask>255.255.255.0</mask>
+            </primary>
+          </address>
+        </ip>
+      </GigabitEthernet>
+    </interface>
+
+    <!-- OSPF Routing Config -->
+    <router>
+      <ospf xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-ospf">
+        <id>1</id>
+        <network>
+          <ip>10.0.1.0</ip>
+          <mask>0.0.0.255</mask>
+          <area>0</area>
+        </network>
+        <network>
+          <ip>10.0.2.0</ip>
+          <mask>0.0.0.255</mask>
+          <area>0</area>
+        </network>
+      </ospf>
+    </router>
+  </native>
+</config>
