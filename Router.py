@@ -1,4 +1,5 @@
 import requests
+import time
 from ncclient import manager
 from ncclient.operations import RPCError
 
@@ -9,15 +10,17 @@ USERNAME = "student"
 PASSWORD = "pxl"
 
 # --- GitHub URL (Single Source of Truth) ---
-GITHUB_RAW_URL = "https://raw.githubusercontent.com/WoutBormansPXL/code_router/refs/heads/main/conf_router"
+GITHUB_RAW_URL = "https://raw.githubusercontent.com/JoachimMorisPXL/Code-Router/refs/heads/main/taak-36.xml"
+CHECK_INTERVAL = 300  # 5 minuten (in seconden)
 
 def haal_config_op_van_github(url):
     """Haal XML configuratie op uit GitHub."""
     print(f"[*] Config ophalen van: {url}")
     try:
-        response = requests.get(url, timeout=10)
+        # Cache uitschakelen met headers om zeker te zijn van de nieuwste versie
+        headers = {'Cache-Control': 'no-cache', 'Pragma': 'no-cache'}
+        response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
-        print("[+] Configuratie succesvol gedownload van GitHub.")
         return response.text
     except requests.exceptions.RequestException as e:
         print(f"[-] Fout bij ophalen GitHub configuratie: {e}")
@@ -49,8 +52,35 @@ def deploy_via_netconf(config_xml):
 
 # --- Hoofdprogramma ---
 if __name__ == "__main__":
-    try:
-        xml_payload = haal_config_op_van_github(GITHUB_RAW_URL)
-        deploy_via_netconf(xml_payload)
-    except Exception:
-        print("[-] Script afgebroken.")
+    laatste_config = None  # Variabele om de vorige status bij te houden
+    
+    print("[*] Script gestart. Polling elke 5 minuten...")
+    
+    while True:
+        huidige_tijd = time.strftime('%Y-%m-%d %H:%M:%S')
+        print(f"\n[{huidige_tijd}] Controle op nieuwe configuratie...")
+        
+        try:
+            # 1. Haal de (mogelijk nieuwe) configuratie op
+            huidige_config = haal_config_op_van_github(GITHUB_RAW_URL)
+            
+            # 2. Vergelijk met de laatst bekende configuratie
+            if huidige_config != laatste_config:
+                if laatste_config is None:
+                    print("[+] Eerste run: initiÃ«le configuratie pushen...")
+                else:
+                    print("[+] Wijziging gedetecteerd op GitHub! Nieuwe configuratie pushen...")
+                
+                # 3. Deploy naar de router
+                deploy_via_netconf(huidige_config)
+                
+                # 4. Update de laatst bekende configuratie
+                laatste_config = huidige_config
+            else:
+                print("[*] Geen wijzigingen op GitHub. Er wordt niets gepusht.")
+                
+        except Exception as e:
+            print(f"[-] Loop afgebroken door fout: {e}. Volgende poging in 5 minuten.")
+            
+        # 5. Wacht 5 minuten (300 seconden)
+        time.sleep(CHECK_INTERVAL)
